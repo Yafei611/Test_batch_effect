@@ -9,9 +9,10 @@
 <meta name="generator" content="pandoc" />
 
 
+<meta name="author" content="Qunhua Li" />
 
 
-<title>Home</title>
+<title>Detect batch effect - report 1</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,6 +20,9 @@
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-1.1/highlight.js"></script>
@@ -162,6 +166,101 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
 
 
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
@@ -202,20 +301,88 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Home</h1>
+<h1 class="title toc-ignore">Detect batch effect - report 1</h1>
+<h4 class="author"><em>Qunhua Li</em></h4>
+<h4 class="date"><em>7/12/2017</em></h4>
 
 </div>
 
 
-<p><br></p>
-<div id="introduction" class="section level3">
-<h3>Introduction</h3>
-<p>This is a study of batch effect.</p>
-<p><br></p>
+<pre class="r"><code># source(&quot;http://bioconductor.org/biocLite.R&quot;)
+# biocLite(&quot;Biobase&quot;)
+# biocLite(&quot;genefilter&quot;)
+# devtools::install_github(&quot;genomicsclass/GSE5859&quot;)
+
+library(Biobase)</code></pre>
+<pre><code>## Loading required package: BiocGenerics</code></pre>
+<pre><code>## Loading required package: parallel</code></pre>
+<pre><code>## 
+## Attaching package: &#39;BiocGenerics&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:parallel&#39;:
+## 
+##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+##     clusterExport, clusterMap, parApply, parCapply, parLapply,
+##     parLapplyLB, parRapply, parSapply, parSapplyLB</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     IQR, mad, xtabs</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     anyDuplicated, append, as.data.frame, cbind, colnames,
+##     do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+##     grepl, intersect, is.unsorted, lapply, lengths, Map, mapply,
+##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+##     Position, rank, rbind, Reduce, rownames, sapply, setdiff,
+##     sort, table, tapply, union, unique, unsplit</code></pre>
+<pre><code>## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
+##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<pre class="r"><code>library(rafalib)
+library(GSE5859)
+library(genefilter)
+
+data(GSE5859)</code></pre>
+<pre class="r"><code># gene expression levels  
+geneExpression = exprs(e)</code></pre>
+<div id="data-collection-dates" class="section level1">
+<h1>Data collection dates</h1>
+<pre class="r"><code># print date info
+sampleInfo = pData(e)
+head(sampleInfo$date)</code></pre>
+<pre><code>## [1] &quot;2003-02-04&quot; &quot;2003-02-04&quot; &quot;2002-12-17&quot; &quot;2003-01-30&quot; &quot;2003-01-03&quot;
+## [6] &quot;2003-01-16&quot;</code></pre>
+<p>Check years that the data from different ethnic groups were collected</p>
+<pre class="r"><code># Print a table of year vs ethnic groups
+year = factor( format(sampleInfo$date,&quot;%y&quot;) )
+tab = table(year,sampleInfo$ethnicity)
+print(tab)</code></pre>
+<pre><code>##     
+## year ASN CEU HAN
+##   02   0  32   0
+##   03   0  54   0
+##   04   0  13   0
+##   05  80   3   0
+##   06   2   0  24</code></pre>
 </div>
-<div id="analysis" class="section level3">
-<h3>Analysis</h3>
-<p>Report 1 <a href="batch_effect_1.html">link</a> Report 2 <a href="batch_effect_2.html">link</a></p>
+<div id="differential-expression-analysis" class="section level1">
+<h1>Differential expression analysis</h1>
+<pre class="r"><code>##remove control genes
+out &lt;- grep(&quot;AFFX&quot;,rownames(geneExpression))</code></pre>
+<p>We first use a t-test to perform differential expression analysis between CEU and ASN.</p>
+<pre class="r"><code>eth &lt;- sampleInfo$ethnicity
+ind&lt;- which(eth%in%c(&quot;CEU&quot;,&quot;ASN&quot;))
+res1 &lt;- rowttests(geneExpression[-out,ind],droplevels(eth[ind]))</code></pre>
+<p>We then perform the same analysis between 2002 vs 2003 within CEU.</p>
+<pre class="r"><code>ind &lt;- which(year%in%c(&quot;02&quot;,&quot;03&quot;) &amp; eth==&quot;CEU&quot;)
+res2 &lt;- rowttests(geneExpression[-out,ind],droplevels(year[ind]))</code></pre>
+<p>We plot histograms for p-values as in Akey et al (2007).</p>
+<pre class="r"><code>mypar(2, 2)
+hist(res1$p, main=&quot;p-value of CEU vs ASN&quot;)
+hist(res2$p, main=&quot;p-value of 2002 vs 2003 for CEU&quot;)</code></pre>
+<p><img src="batch_effect_1_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>There are a lot of significant genes between the CEU samples collected in 2002 and 2003.</p>
 </div>
 
 <hr>
@@ -244,6 +411,8 @@ $(document).ready(function () {
 -->
 
 
+</div>
+</div>
 
 </div>
 
