@@ -1,0 +1,73 @@
+
+---
+title: "Detect batch effect - report 1"
+author: "Qunhua Li"
+date: "7/12/2017"
+output: html_document
+---
+
+
+```{r }
+# source("http://bioconductor.org/biocLite.R")
+# biocLite("Biobase")
+# biocLite("genefilter")
+# devtools::install_github("genomicsclass/GSE5859")
+
+library(Biobase)
+library(rafalib)
+library(GSE5859)
+library(genefilter)
+
+data(GSE5859)
+```
+
+```{r }
+# gene expression levels  
+geneExpression = exprs(e)
+```
+
+# Data collection dates
+```{r }
+# print date info
+sampleInfo = pData(e)
+head(sampleInfo$date)
+```
+
+Check years that the data from different ethnic groups were collected
+```{r }
+# Print a table of year vs ethnic groups
+year = factor( format(sampleInfo$date,"%y") )
+tab = table(year,sampleInfo$ethnicity)
+print(tab)
+```
+
+# Differential expression analysis
+```{r }
+##remove control genes
+out <- grep("AFFX",rownames(geneExpression))
+```
+
+We first use a t-test to perform differential expression analysis between CEU and ASN.
+```{r }
+eth <- sampleInfo$ethnicity
+ind<- which(eth%in%c("CEU","ASN"))
+res1 <- rowttests(geneExpression[-out,ind],droplevels(eth[ind]))
+```
+
+We then perform the same analysis between 2002 vs 2003 within CEU.
+```{r }
+ind <- which(year%in%c("02","03") & eth=="CEU")
+res2 <- rowttests(geneExpression[-out,ind],droplevels(year[ind]))
+```
+
+We plot histograms for p-values as in Akey et al (2007). 
+```{r }   
+mypar(2, 2)
+hist(res1$p, main="p-value of CEU vs ASN")
+hist(res2$p, main="p-value of 2002 vs 2003 for CEU")
+```
+
+There are a lot of significant genes between the CEU samples collected in 2002 and 2003. 
+
+
+

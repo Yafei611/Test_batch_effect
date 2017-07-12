@@ -1,0 +1,74 @@
+
+---
+title: "Detect batch effect - report 2"
+author: "Qunhua Li"
+date: "7/12/2017"
+output: html_document
+---
+
+
+```{r }
+# source("http://bioconductor.org/biocLite.R")
+# biocLite("Biobase")
+# biocLite("genefilter")
+# devtools::install_github("genomicsclass/GSE5859")
+```
+
+```{r }
+library(Biobase)
+library(rafalib)
+library(GSE5859)
+library(genefilter)
+data(GSE5859)
+
+```
+# Preprocessing
+
+One sample was entered twice in the dataset, so we need remove this redundant sample.
+```{r}
+cors <- cor(exprs(e))
+Pairs=which(abs(cors)>0.9999,arr.ind=TRUE)
+out = Pairs[which(Pairs[,1]<Pairs[,2]),,drop=FALSE]
+if(length(out[,2])>0) e=e[,-out[2]]
+```
+
+As in report 1, we remove control probes from the analysis.
+```{r}
+out <- grep("AFFX",featureNames(e))
+e <- e[-out,]
+```
+
+We create a detrended gene expression data matrix and 
+extract the information on dates and ethnic group 
+```{r }
+y <- exprs(e)-rowMeans(exprs(e))
+dates <- pData(e)$date
+eth <- pData(e)$ethnicity
+```
+
+# PCA analysis
+
+```{r }
+s <- svd(y)
+```
+
+We first plot of PC1 and PC2 for ethnic groups
+```{r echo=FALSE} 
+cols = as.numeric(eth)
+mypar()
+plot(s$v[,1],s$v[,2],col=cols,pch=16, xlab="PC1",ylab="PC2")
+legend("bottomleft",levels(eth),col=seq(along=levels(eth)),pch=16)
+title("Ethnic groups")
+```
+
+We then plot PC1 and PC2 for years
+```{r }
+sampleInfo = pData(e)
+year = factor( format(sampleInfo$date,"%y") )
+cols = as.numeric(year)
+mypar()
+plot(s$v[,1],s$v[,2],col=cols,pch=16, xlab="PC1",ylab="PC2")
+legend("bottomleft",levels(year),col=seq(along=levels(year)),pch=16)
+title("Years")
+```
+
